@@ -1,10 +1,10 @@
 #ifndef GP_QTREE_
 #define GP_QTREE_
 
-#define NORTH_WEST 1
-#define NORTH_EAST 2
-#define SOUTH_WEST 3
-#define SOUTH_EAST 4
+#define NORTH_WEST 0
+#define NORTH_EAST 1
+#define SOUTH_WEST 2
+#define SOUTH_EAST 3
 
 #include "/Users/parry/raylib/src/raylib.h"
 
@@ -20,7 +20,8 @@ typedef struct QuadTree{
 }QuadTree;
 
 void insert(QuadTree*, Rectangle);
-void subdivide(QuadTree*);
-QuadTree* new_tree();
+void subdivide(QuadTree*, int);
+QuadTree* new_tree(Rectangle);
+void free_tree(QuadTree*);
 
 #endif
