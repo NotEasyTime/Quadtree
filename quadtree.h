@@ -23,5 +23,6 @@ void insert(QuadTree*, Rectangle);
 void subdivide(QuadTree*, int);
 QuadTree* new_tree(Rectangle);
 void free_tree(QuadTree*);
+void draw_tree(QuadTree*);
 
 #endif
