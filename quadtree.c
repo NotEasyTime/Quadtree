@@ -146,15 +146,8 @@ void remove_item(QuadTree *qt, Vector2 point) {
         }
     }
 
-
-
-    printf("Parent Items: %d \n",parent->item_total);
-
-
-
     // If the parent node has less than 7 items, attempt to collapse the tree.
     if (parent->item_total < 7 && parent->split == true) {
-        printf("COLLAPSE CALLED HERE /n/n");
         collapse(parent);
     }
 }
