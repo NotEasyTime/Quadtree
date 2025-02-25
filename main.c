@@ -15,7 +15,7 @@ int main(){
     while(!WindowShouldClose()){
 
         if(IsMouseButtonPressed(0)){
-            insert(test,(Rectangle){GetMouseX(), GetMouseY(), 5,5});
+            insert(test,NULL,(Rectangle){GetMouseX(), GetMouseY(), 5,5});
         }
 
         if(IsMouseButtonPressed(1)){

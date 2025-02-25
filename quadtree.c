@@ -1,4 +1,5 @@
 #include "quadtree.h"
+#include <complex.h>
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -43,6 +44,12 @@ void insert(QuadTree *qt, QuadTree *parent, Rectangle rect) {
         qt->items[qt->top] = rect;
         qt->top++;
         qt->item_total++;
+        if(parent != NULL){
+            parent->item_total = 0;
+            for(int i = 0; i < 4; i++){
+                parent->item_total += parent->cardinal[i]->item_total;
+            }
+        }
     } else {
         // If the node is full and needs to split.
         if (!qt->split) {
@@ -73,6 +80,7 @@ void insert(QuadTree *qt, QuadTree *parent, Rectangle rect) {
 
             // Clear the items in the parent node since they have been moved.
             qt->top = 0;
+
         }
 
         // After the split, we now add the new item to the appropriate child node.
@@ -91,10 +99,7 @@ void insert(QuadTree *qt, QuadTree *parent, Rectangle rect) {
         }
 
     }
-    // Send item_total up to the parent node
-    if (parent) {
-        parent->item_total += qt->item_total;
-    }
+
 }
 
 
@@ -135,26 +140,32 @@ void remove_item(QuadTree *qt, Vector2 point) {
         }
         // Decrease the count of items
         qt->top--;
-        qt->item_total--;
+
+        if (parent != NULL) {
+            parent->item_total--;
+        }
     }
 
-    // Send item_total up to the parent node.
-    parent->item_total -= 1;
+
+
+    printf("Parent Items: %d \n",parent->item_total);
 
 
 
     // If the parent node has less than 7 items, attempt to collapse the tree.
-    if (parent->item_total < 7 && qt->split == true) {
-        collapse(qt);
-     }
+    if (parent->item_total < 7 && parent->split == true) {
+        printf("COLLAPSE CALLED HERE /n/n");
+        collapse(parent);
+    }
 }
 
 
-bool collapse(QuadTree *qt) {
+void collapse(QuadTree *qt) {
     if (qt->item_total >= 7) {
-        return false;
+        return;
     }
 
+    qt->top = 0;
     for (int i = 0; i < 4; i++) {
         for (int j = 0; j < qt->cardinal[i]->top; j++) {
             qt->items[qt->top] = qt->cardinal[i]->items[j];
@@ -168,8 +179,8 @@ bool collapse(QuadTree *qt) {
     }
 
     qt->item_total = qt->top;
+    qt->split = false;
 
-    return true;
 }
 
 

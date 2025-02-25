@@ -22,7 +22,7 @@ typedef struct QuadTree{
 
 void insert(QuadTree*, QuadTree*, Rectangle);
 void remove_item(QuadTree*, Vector2);
-bool collapse(QuadTree*);
+void collapse(QuadTree*);
 void subdivide(QuadTree*, int);
 QuadTree* new_tree(Rectangle);
 void free_tree(QuadTree*);
