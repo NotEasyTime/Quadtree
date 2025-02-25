@@ -12,6 +12,7 @@ typedef struct QuadTree{
 
     Rectangle domain;
     int top, capacity;
+    int item_total;
     Rectangle items[7];
     bool split;
 
@@ -19,7 +20,9 @@ typedef struct QuadTree{
 
 }QuadTree;
 
-void insert(QuadTree*, Rectangle);
+void insert(QuadTree*, QuadTree*, Rectangle);
+void remove_item(QuadTree*, Vector2);
+bool collapse(QuadTree*);
 void subdivide(QuadTree*, int);
 QuadTree* new_tree(Rectangle);
 void free_tree(QuadTree*);

@@ -11,7 +11,8 @@ QuadTree* new_tree(Rectangle domain) {
 
     new_quad_tree->domain = domain;
     new_quad_tree->top = 0;
-    new_quad_tree->capacity = 100;
+    new_quad_tree->capacity = 7;
+    new_quad_tree->item_total = 0;
     for (int i = 0; i < 7; i++) {
         new_quad_tree->items[i] = (Rectangle){0, 0, 0, 0};
     }
@@ -36,13 +37,12 @@ void free_tree(QuadTree* qt) {
     free(qt);
 }
 
-
-
-void insert(QuadTree *qt, Rectangle rect) {
+void insert(QuadTree *qt, QuadTree *parent, Rectangle rect) {
     // If the tree is not split and there's room for more items, just add the item.
     if (qt->top < 6 && qt->split == false) {
         qt->items[qt->top] = rect;
         qt->top++;
+        qt->item_total++;
     } else {
         // If the node is full and needs to split.
         if (!qt->split) {
@@ -58,15 +58,15 @@ void insert(QuadTree *qt, Rectangle rect) {
             for (int i = 0; i < qt->top; i++) {
                 if (qt->items[i].x < qt->domain.x + qt->domain.width / 2) {
                     if (qt->items[i].y < qt->domain.y + qt->domain.height / 2) {
-                        insert(qt->cardinal[NORTH_WEST], qt->items[i]);
+                        insert(qt->cardinal[NORTH_WEST], qt, qt->items[i]);
                     } else {
-                        insert(qt->cardinal[SOUTH_WEST], qt->items[i]);
+                        insert(qt->cardinal[SOUTH_WEST], qt, qt->items[i]);
                     }
                 } else {
                     if (qt->items[i].y < qt->domain.y + qt->domain.height / 2) {
-                        insert(qt->cardinal[NORTH_EAST], qt->items[i]);
+                        insert(qt->cardinal[NORTH_EAST], qt, qt->items[i]);
                     } else {
-                        insert(qt->cardinal[SOUTH_EAST], qt->items[i]);
+                        insert(qt->cardinal[SOUTH_EAST], qt, qt->items[i]);
                     }
                 }
             }
@@ -78,58 +78,142 @@ void insert(QuadTree *qt, Rectangle rect) {
         // After the split, we now add the new item to the appropriate child node.
         if (rect.x < qt->domain.x + qt->domain.width / 2) {
             if (rect.y < qt->domain.y + qt->domain.height / 2) {
-                insert(qt->cardinal[NORTH_WEST], rect);
+                insert(qt->cardinal[NORTH_WEST], qt, rect);
             } else {
-                insert(qt->cardinal[SOUTH_WEST], rect);
+                insert(qt->cardinal[SOUTH_WEST], qt, rect);
             }
         } else {
             if (rect.y < qt->domain.y + qt->domain.height / 2) {
-                insert(qt->cardinal[NORTH_EAST], rect);
+                insert(qt->cardinal[NORTH_EAST], qt, rect);
             } else {
-                insert(qt->cardinal[SOUTH_EAST], rect);
+                insert(qt->cardinal[SOUTH_EAST], qt, rect);
+            }
+        }
+
+    }
+    // Send item_total up to the parent node
+    if (parent) {
+        parent->item_total += qt->item_total;
+    }
+}
+
+
+void remove_item(QuadTree *qt, Vector2 point) {
+    // Traverse down the tree to the leaf node that could contain the point.
+    QuadTree *parent = qt;
+    while (qt->split == true) {
+        parent = qt;
+        if (point.x < qt->domain.x + qt->domain.width / 2) {
+            if (point.y < qt->domain.y + qt->domain.height / 2) {
+                qt = qt->cardinal[NORTH_WEST];
+            } else {
+                qt = qt->cardinal[SOUTH_WEST];
+            }
+        } else {
+            if (point.y < qt->domain.y + qt->domain.height / 2) {
+                qt = qt->cardinal[NORTH_EAST];
+            } else {
+                qt = qt->cardinal[SOUTH_EAST];
             }
         }
     }
+
+    // At this point, we are at the leaf node, where items might be stored.
+    int index_remove = -1;
+    for (int i = 0; i < qt->top; i++) {
+        if (CheckCollisionPointRec(point, qt->items[i])) {
+            index_remove = i;
+            break;
+        }
+    }
+
+    // If the point was found, remove it.
+    if (index_remove != -1) {
+        // Shift all subsequent items to fill the space
+        for (int i = index_remove; i < qt->top - 1; i++) {
+            qt->items[i] = qt->items[i + 1];
+        }
+        // Decrease the count of items
+        qt->top--;
+        qt->item_total--;
+    }
+
+    // Send item_total up to the parent node.
+    parent->item_total -= 1;
+
+
+
+    // If the parent node has less than 7 items, attempt to collapse the tree.
+    if (parent->item_total < 7 && qt->split == true) {
+        collapse(qt);
+     }
+}
+
+
+bool collapse(QuadTree *qt) {
+    if (qt->item_total >= 7) {
+        return false;
+    }
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < qt->cardinal[i]->top; j++) {
+            qt->items[qt->top] = qt->cardinal[i]->items[j];
+            qt->top += 1;
+        }
+    }
+
+    for (int i = 0; i < 4; i++) {
+        free_tree(qt->cardinal[i]);
+        qt->cardinal[i] = NULL;
+    }
+
+    qt->item_total = qt->top;
+
+    return true;
 }
 
 
 void subdivide(QuadTree *parent, int direction){
 
-    switch(direction){
-        case(NORTH_WEST):
-        parent->cardinal[NORTH_WEST] = new_tree((Rectangle){
-            parent->domain.x,
-            parent->domain.y,
-            parent->domain.width / 2,
-            parent->domain.height / 2
-        });
-        break;
-        case(NORTH_EAST):
-        parent->cardinal[NORTH_EAST] = new_tree((Rectangle){
-            parent->domain.x + parent->domain.width / 2,
-            parent->domain.y,
-            parent->domain.width / 2,
-            parent->domain.height / 2
-        });
-        break;
-        case(SOUTH_WEST):
-        parent->cardinal[SOUTH_WEST] = new_tree((Rectangle){
-            parent->domain.x,
-            parent->domain.y + parent->domain.height / 2,
-            parent->domain.width / 2,
-            parent->domain.height / 2
-        });
-        break;
-        case(SOUTH_EAST):
-        parent->cardinal[SOUTH_EAST] = new_tree((Rectangle){
-            parent->domain.x + parent->domain.width / 2,
-            parent->domain.y + parent->domain.height / 2,
-            parent->domain.width / 2,
-            parent->domain.height / 2
-        });
-        break;
-    }
+    // proper direction
+    if(direction > 3 && -1 < direction){ printf("FAKE DIRECTION"); return; }
+    // make sure no exsisting child
+    if(parent->cardinal[direction] != NULL){ printf("HAS CHILD"); return; }
 
+    switch(direction){
+            case(NORTH_WEST):
+            parent->cardinal[NORTH_WEST] = new_tree((Rectangle){
+                parent->domain.x,
+                parent->domain.y,
+                parent->domain.width / 2,
+                parent->domain.height / 2
+            });
+            break;
+            case(NORTH_EAST):
+            parent->cardinal[NORTH_EAST] = new_tree((Rectangle){
+                parent->domain.x + parent->domain.width / 2,
+                parent->domain.y,
+                parent->domain.width / 2,
+                parent->domain.height / 2
+            });
+            break;
+            case(SOUTH_WEST):
+            parent->cardinal[SOUTH_WEST] = new_tree((Rectangle){
+                parent->domain.x,
+                parent->domain.y + parent->domain.height / 2,
+                parent->domain.width / 2,
+                parent->domain.height / 2
+            });
+            break;
+            case(SOUTH_EAST):
+            parent->cardinal[SOUTH_EAST] = new_tree((Rectangle){
+                parent->domain.x + parent->domain.width / 2,
+                parent->domain.y + parent->domain.height / 2,
+                parent->domain.width / 2,
+                parent->domain.height / 2
+            });
+            break;
+        }
 
 }
 

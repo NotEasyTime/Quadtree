@@ -18,6 +18,11 @@ int main(){
             insert(test,(Rectangle){GetMouseX(), GetMouseY(), 5,5});
         }
 
+        if(IsMouseButtonPressed(1)){
+            remove_item(test, GetMousePosition());
+        }
+
+
         BeginDrawing();
         ClearBackground(RAYWHITE);
 
